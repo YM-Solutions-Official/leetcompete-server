@@ -52,11 +52,10 @@ export const setupSocketServer = (httpServer) => {
       // Notify all participants that room is cancelled
       socket.to(roomId).emit("room-cancelled");
       
-      // Remove all sockets from this room
+
       io.in(roomId).socketsLeave(roomId);
     });
-
-    // Chat message event
+t
     socket.on("send-message", ({ roomId, sender, name, text }) => {
       if (!roomId || !text) {
         console.log("❌ Invalid message data");
@@ -64,8 +63,6 @@ export const setupSocketServer = (httpServer) => {
       }
       
       console.log(`💬 ${name} in ${roomId}: ${text}`);
-      
-      // Broadcast to everyone in the room including sender
       io.to(roomId).emit("receive-message", { 
         sender, 
         name, 
@@ -74,14 +71,22 @@ export const setupSocketServer = (httpServer) => {
       });
     });
 
-    // Start match event (only host can trigger, but ALL participants receive it)
-    socket.on("start-match", ({ roomId }) => {
-      console.log(`🎮 Match starting in room ${roomId}`);
-      
-      // Notify EVERYONE in the room (including the host who triggered it)
-      io.to(roomId).emit("match-started");
-    });
+socket.on("start-match", ({ roomId, metadata }) => {
+  if (!metadata) {
+    console.log(`❌ Match start failed: Metadata missing for room ${roomId}`);
+    return;
+  }
 
+  console.log(`🎮 Match starting in room ${roomId} with duration: ${metadata.duration} mins`);
+
+  const startTime = Date.now(); 
+  io.to(roomId).emit("match-started", { 
+    startTime: startTime,
+    metadata: metadata 
+  });
+});
+
+            
     // Handle disconnection
     socket.on("disconnect", () => {
       const roomId = socket.data.joinedRoom;

@@ -5,7 +5,8 @@ const RoomSchema = new mongoose.Schema({
   opponent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   problems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Problem' }],
   status: { type: String, enum: ['waiting', 'active', 'started'], default: 'waiting' }, 
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  duration: { type: Number, default: 60 } 
 });
 
 const Room = mongoose.model("Room", RoomSchema);

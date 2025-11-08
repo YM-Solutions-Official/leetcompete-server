@@ -6,7 +6,7 @@ import User from "../model/userModel.js";
 
 export const createRoom = async (req, res) => {
   try {
-    const { hostId, problems } = req.body;
+    const { hostId, problems, duration } = req.body;
     
     if (!hostId) {
       return res.status(400).json({ error: "Host ID is required" });
@@ -16,8 +16,6 @@ export const createRoom = async (req, res) => {
     let exists = true;
     
     while (exists) {
-      // Use substring of a full UUID to get a short, unique ID
-      // This generates an 8-character, uppercase, hex-based ID (e.g., "1B2E4567")
       roomId = uuidv4().substring(0, 8).toUpperCase(); 
       exists = await Room.exists({ roomId });
     }
@@ -26,7 +24,8 @@ export const createRoom = async (req, res) => {
       roomId, 
       host: hostId, 
       problems,
-      status: "waiting" 
+      status: "waiting",
+      duration: duration
     });
     
     await room.save();
@@ -77,18 +76,10 @@ export const joinRoom = async (req, res) => {
       return res.status(404).json({ error: "Opponent user not found" });
     }
 
-    // check if user is already in another room as opponent
-    const opponentExists = await Room.exists({ opponent: opponentId });
-    if (opponentExists) {
-      return res.status(400).json({ error: "User is already in another room as opponent" });
-    }
-
-    // Update room with opponent
     room.opponent = opponentId;
     room.status = "active";
     await room.save();
 
-    // Populate the opponent data before sending response
     await room.populate("opponent");
 
     console.log(`✅ Opponent ${opponentId} joined room ${normalizedRoomId}`);
@@ -99,6 +90,7 @@ export const joinRoom = async (req, res) => {
       opponent: room.opponent,
       problems: room.problems,
       metadata: room.metadata,
+      duration: room.duration,
     }
 
     console.log('Room data sent to client:', serverRespons);
