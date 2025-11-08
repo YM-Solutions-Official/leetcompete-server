@@ -69,7 +69,7 @@ export const setupSocketServer = (httpServer) => {
       socket.data.userId = userId;
       socket.data.name = name;
       socket.data.photoURL = photoURL; // Store photoURL
-      
+
       socket.join(roomId);
       console.log(`[Join Room] ✅ ${name} (${userId}) joined room ${roomId}`);
 
@@ -85,7 +85,7 @@ export const setupSocketServer = (httpServer) => {
         const oldRoom = socket.data.joinedRoom;
         socket.data.joinedRoom = null;
         console.log(`[Leave Room] 👋 User ${userId} left room ${roomId}`);
-        
+
         // Notify others in the room that opponent left
         socket.to(roomId).emit("opponent-left", { userId });
 
@@ -97,11 +97,11 @@ export const setupSocketServer = (httpServer) => {
     // --- Cancel Room Event (from host) ---
     socket.on("cancel-room", ({ roomId }) => {
       console.log(`[Cancel Room] ❌ Room ${roomId} cancelled by host`);
-      
+
       // Notify all *other* participants that room is cancelled
       socket.to(roomId).emit("room-cancelled");
-      
-      // Remove all sockets from this room
+
+
       io.in(roomId).socketsLeave(roomId);
       // Note: The HTTP controller (cancelRoom) handles the DB deletion.
     });
@@ -112,37 +112,43 @@ export const setupSocketServer = (httpServer) => {
         console.log("❌ [Chat] Invalid message data");
         return;
       }
-      
-      console.log(`[Chat] 💬 ${name} in ${roomId}: ${text}`);
-      
-      // Broadcast to everyone in the room including sender
-      io.to(roomId).emit("receive-message", { 
-        sender, 
-        name, 
+
+      console.log(`💬 ${name} in ${roomId}: ${text}`);
+      io.to(roomId).emit("receive-message", {
+        sender,
+        name,
         text,
         timestamp: new Date().toISOString()
       });
     });
 
-    // --- Start Match Event ---
-    socket.on("start-match", ({ roomId }) => {
-      console.log(`[Match Start] 🎮 Match starting in room ${roomId}`);
-      
-      // Notify EVERYONE in the room (including the host)
-      io.to(roomId).emit("match-started");
+    socket.on("start-match", ({ roomId, metadata }) => {
+      if (!metadata) {
+        console.log(`❌ Match start failed: Metadata missing for room ${roomId}`);
+        return;
+      }
+
+      console.log(`🎮 Match starting in room ${roomId} with duration: ${metadata.duration} mins`);
+
+      const startTime = Date.now();
+      io.to(roomId).emit("match-started", {
+        startTime: startTime,
+        metadata: metadata
+      });
     });
 
-    // --- Handle Disconnection ---
-    socket.on("disconnect", async () => {
+
+    // Handle disconnection
+    socket.on("disconnect",async  () => {
       const roomId = socket.data.joinedRoom;
       const userId = socket.data.userId;
-      
+
       if (roomId && userId) {
         console.log(`[Socket Disconnect] 🔴 User ${userId} disconnected from room ${roomId}`);
-        
+
         // Notify others that opponent disconnected
         socket.to(roomId).emit("opponent-disconnected", { userId });
-        
+
         // Clean up socket data
         socket.leave(roomId);
         socket.data = {}; // Clear all socket data
