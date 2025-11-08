@@ -24,7 +24,8 @@ const problemSchema = new mongoose.Schema({
 problemSchema.index({ difficulty: 1, topicTags: 1 });
 
 
-problemSchema.statics.getRandomProblems = async function(count, difficulty, topics) {
+// why is it here 
+problemSchema.statics.getRandomProblems = async function (count, difficulty, topics) {
   const query = { difficulty };
   if (topics && topics.length > 0) {
     query.topicTags = { $in: topics };
