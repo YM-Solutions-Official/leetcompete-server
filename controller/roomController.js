@@ -70,7 +70,6 @@ export const joinRoom = async (req, res) => {
       return res.status(400).json({ error: "Host cannot join their own room as opponent" });
     }
 
-    // check if user exists or not 
     const opponentDetails = await User.findById(opponentId);
     if (!opponentDetails) {
       return res.status(404).json({ error: "Opponent user not found" });

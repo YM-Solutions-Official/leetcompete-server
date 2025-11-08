@@ -55,7 +55,7 @@ export const setupSocketServer = (httpServer) => {
 
       io.in(roomId).socketsLeave(roomId);
     });
-t
+
     socket.on("send-message", ({ roomId, sender, name, text }) => {
       if (!roomId || !text) {
         console.log("❌ Invalid message data");
