@@ -4,7 +4,7 @@ const RoomSchema = new mongoose.Schema({
   host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   opponent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   problems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Problem' }],
-  status: { type: String, enum: ['waiting', 'active', 'started'], default: 'waiting' },
+  status: { type: String, enum: ['waiting', 'active', 'started'], default: 'waiting' }, // 'waiting', 'active', 'started', 'ended'
   createdAt: { type: Date, default: Date.now }
 });
 
