@@ -16,7 +16,7 @@ async function importProblems() {
         await mongoose.connect(MONGODB_URI);
         console.log('✅ Connected to MongoDB');
 
-        const dataPath = path.resolve(__dirname, '../data/problems.json');
+        const dataPath = path.resolve(__dirname, '../data/problems_cleaned.json');
         const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
         console.log(`📁 Found ${data.problems.length} problems`);
 

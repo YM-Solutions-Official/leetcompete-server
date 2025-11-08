@@ -1,10 +1,5 @@
 import dotenv from "dotenv";
 dotenv.config();
-console.log('Environment variables loaded:', {
-    MONGO_URI_EXISTS: !!process.env.MONGO_URI,
-    GEMINI_API_KEY_EXISTS: !!process.env.GEMINI_API_KEY,
-    ENV_KEYS: Object.keys(process.env)
-});
 
 import express from "express";
 import cors from "cors";
@@ -37,7 +32,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/problems", problemRouter);
 app.use("/api/rooms", roomRouter);
-app.use("/api/evaluation", evaluationRouter);
+app.use("/api/evaluate", evaluationRouter);
 app.use("/api/submissions", submissionRouter);
 
 app.get("/", (req, res) => {
@@ -51,7 +46,7 @@ app.set("io", io);
 connectDB(process.env.MONGO_URI)
   .then(() => {
     server.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
+      console.log(`🚀 Server running at http://localhost:${PORT}`);
     });
   })
   .catch((err) => {

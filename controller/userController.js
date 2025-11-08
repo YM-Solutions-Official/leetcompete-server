@@ -46,26 +46,62 @@ export const updateName = async(req, res)=>{
     }   
 }
 
-export const updatePhotoURL = async(req, res)=>{ 
-    try {
-        if(!req.file || !req.file.path){
-            return res.status(400).json({message: "No photo file uploaded"});
-        }
-        const photoURL = req.file.path;
-        const user = await User.findByIdAndUpdate(
-            req.userId,
-            { photoURL },
-            { new: true }
-        );
-        if(!user){
-            return res.status(404).json({message: "User not found"});
-        }
-        res.status(200).json({message: "Photo URL updated successfully"});
+export const updatePhotoURL = async (req, res) => {
+  console.log("📸 [updatePhotoURL] Triggered.");
+
+  try {
+    console.log("🟢 User ID from token:", req.userId);
+    console.log("🟡 File data received:", req.file);
+
+    // Check auth
+    if (!req.userId) {
+      console.log("❌ No userId in request — auth failed.");
+      return res.status(401).json({ message: "Unauthorized user" });
     }
-    catch (error) {
-        res.status(500).json({message: `Update User Photo URL Error: ${error}`});
-    }   
-}   
+
+    // Check file
+    if (!req.file) {
+      console.log("❌ No file received by multer.");
+      return res.status(400).json({ message: "No image file received" });
+    }
+
+    // Check Cloudinary upload result
+    if (!req.file.path) {
+      console.log("❌ No Cloudinary path found in req.file");
+      return res.status(400).json({ message: "Cloudinary upload failed" });
+    }
+
+    const photoURL = req.file.path;
+    console.log("✅ Cloudinary returned URL:", photoURL);
+
+    // Update user in DB
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userId,
+      { photoURL },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      console.log("❌ User not found in DB:", req.userId);
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("✅ User updated successfully:", updatedUser.name);
+    return res.status(200).json({
+      message: "Profile picture updated successfully",
+      photoURL,
+    });
+  } catch (error) {
+    console.error("💥 updatePhotoURL failed:", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+      stack: error.stack,
+    });
+  }
+};
+
+
 
 export const getLeaderBoard = async (req, res) => {
   try {
