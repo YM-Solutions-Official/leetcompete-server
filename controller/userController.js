@@ -66,3 +66,16 @@ export const updatePhotoURL = async(req, res)=>{
         res.status(500).json({message: `Update User Photo URL Error: ${error}`});
     }   
 }   
+
+export const getLeaderBoard = async (req, res) => {
+  try {
+    const users = await User.find({})
+      .sort({ rating: -1 })
+      .select("name photoURL rating")
+      .lean();
+
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: `Get LeaderBoard Error: ${error.message}` });
+  }
+};

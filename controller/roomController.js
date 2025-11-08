@@ -14,7 +14,6 @@ export const createRoom = async (req, res) => {
     let roomId;
     let exists = true;
     
-    // Generate unique alphanumeric room ID (no spaces or special chars)
     while (exists) {
       roomId = nanoid(8).toUpperCase();
       exists = await Room.exists({ roomId });
@@ -45,7 +44,6 @@ export const joinRoom = async (req, res) => {
       return res.status(400).json({ error: "Room ID and opponent ID are required" });
     }
 
-    // Trim and normalize room ID
     const normalizedRoomId = roomId.trim().toUpperCase();
 
     console.log(`🔍 Looking for room: "${normalizedRoomId}"`);
