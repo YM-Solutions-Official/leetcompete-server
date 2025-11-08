@@ -15,7 +15,23 @@ const userSchema = new mongoose.Schema({
     },
     password:{
         type: String,
-        required: true
+        required: function() {
+            return !this.auth0Id; // Password not required for Auth0 users
+        }
+    },
+    auth0Id:{
+        type: String,
+        unique: true,
+        sparse: true // allows null values while maintaining uniqueness
+    },
+    authProvider:{
+        type: String,
+        enum: ['local', 'auth0'],
+        default: 'local'
+    },
+    emailVerified:{
+        type: Boolean,
+        default: false
     },
     photoURL:{
         type: String,
