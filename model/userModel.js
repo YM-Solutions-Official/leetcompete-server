@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
     },
     description:{
         type: String,
-        default: "Hi there! I'm using Dev Dual."
+        default: "Hi there! I'm using LeetCompete." // Changed Dev Dual
     },
     email:{
         type: String,

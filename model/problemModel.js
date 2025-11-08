@@ -24,7 +24,9 @@ const problemSchema = new mongoose.Schema({
 problemSchema.index({ difficulty: 1, topicTags: 1 });
 
 
-// why is it here 
+// This function is no longer needed as the controller logic is more efficient
+// You can remove this or keep it, but the controller won't use it.
+/*
 problemSchema.statics.getRandomProblems = async function (count, difficulty, topics) {
   const query = { difficulty };
   if (topics && topics.length > 0) {
@@ -36,6 +38,7 @@ problemSchema.statics.getRandomProblems = async function (count, difficulty, top
     { $sample: { size: count } }
   ]);
 };
+*/
 
 const Problem = mongoose.model('Problem', problemSchema);
 export default Problem;

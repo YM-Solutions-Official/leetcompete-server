@@ -28,14 +28,26 @@ const matchSchema = new mongoose.Schema(
       default: 0,
     },
     duration: {
-      type: Number,
+      type: Number, // Stored in seconds
       required: true,
+      default: 0
     },
     winner: {
-      type: String,
-      enum: ["host", "challenger", "draw"],
-      default: null,
+      type: String, // Should store the User's ObjectId string
+      default: null, // 'draw' can be a special case
     },
+    // We can also store the winner as an ObjectId
+    /*
+    winner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+    isDraw: {
+      type: Boolean,
+      default: false
+    }
+    */
   },
   { timestamps: true }
 );

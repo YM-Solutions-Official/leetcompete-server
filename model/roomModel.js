@@ -4,8 +4,12 @@ const RoomSchema = new mongoose.Schema({
   host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   opponent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   problems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Problem' }],
-  status: { type: String, enum: ['waiting', 'active', 'started'], default: 'waiting' }, 
-  createdAt: { type: Date, default: Date.now }
+  status: { 
+    type: String, 
+    enum: ['waiting', 'active', 'started'], // 'active' = full, 'started' = match in progress
+    default: 'waiting' 
+  }, 
+  createdAt: { type: Date, default: Date.now } // This timestamp is now used to calculate duration
 });
 
 const Room = mongoose.model("Room", RoomSchema);
