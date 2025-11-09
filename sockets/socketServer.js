@@ -43,7 +43,7 @@ const checkAndCleanupRoom = async (roomId) => {
 export const setupSocketServer = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: "https://leetcompete-client.vercel.app/",
+      origin: "https://leetcompete-client.vercel.app",
       methods: ["GET", "POST"],
       credentials: true,
     },
