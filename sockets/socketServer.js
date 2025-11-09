@@ -1,6 +1,5 @@
 import { Server } from "socket.io";
 import Room from "../model/roomModel.js"; // Import Room model for cleanup
-import Match from "../model/matchModel.js";
 import MatchParticipant from "../model/matchParticipantModel.js";
 import Submission from "../model/submissionModel.js";
 
