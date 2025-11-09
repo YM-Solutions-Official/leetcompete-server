@@ -8,6 +8,7 @@ import {
   updateName,
   getLeaderBoard,
   updatePhotoURL,
+  getMatchHistory,
 } from "../controller/userController.js";
 
 const userRouter = express.Router();
@@ -18,5 +19,6 @@ userRouter.post("/updateDescription", isAuth, updateDescription);
 userRouter.post("/updateName", isAuth, updateName);
 userRouter.post("/updatePhotoURL", isAuth, upload.single("photo"), updatePhotoURL);
 userRouter.get("/getleaderboard", getLeaderBoard);
+userRouter.get("/getmatchhistory", isAuth, getMatchHistory);
 
 export default userRouter;
