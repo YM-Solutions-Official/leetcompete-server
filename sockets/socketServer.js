@@ -18,7 +18,9 @@ const checkAndCleanupRoom = async (roomId) => {
 
     // Check if the room is empty
     if (socketsInRoom.size === 0) {
-      console.log(`[Socket Cleanup] Room ${roomId} is empty. Checking for deletion.`);
+      console.log(
+        `[Socket Cleanup] Room ${roomId} is empty. Checking for deletion.`
+      );
 
       // Attempt to delete the room ONLY if it's still in the 'waiting' state
       const deletedRoom = await Room.findOneAndDelete({
@@ -27,23 +29,34 @@ const checkAndCleanupRoom = async (roomId) => {
       });
 
       if (deletedRoom) {
-        console.log(`✅ [Socket Cleanup] Deleted empty 'waiting' room ${roomId} from DB.`);
+        console.log(
+          `✅ [Socket Cleanup] Deleted empty 'waiting' room ${roomId} from DB.`
+        );
       } else {
-        console.log(`[Socket Cleanup] Room ${roomId} was not 'waiting' or not found. No deletion.`);
+        console.log(
+          `[Socket Cleanup] Room ${roomId} was not 'waiting' or not found. No deletion.`
+        );
       }
     } else {
-      console.log(`[Socket Info] Room ${roomId} still has ${socketsInRoom.size} user(s).`);
+      console.log(
+        `[Socket Info] Room ${roomId} still has ${socketsInRoom.size} user(s).`
+      );
     }
   } catch (error) {
-    console.error(`❌ [Socket Cleanup] Error cleaning up room ${roomId}:`, error);
+    console.error(
+      `❌ [Socket Cleanup] Error cleaning up room ${roomId}:`,
+      error
+    );
   }
 };
-
 
 export const setupSocketServer = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: "https://leetcompete-client.vercel.app",
+      origin: [
+        "https://leetcompete-client.vercel.app",
+        "http://localhost:5173",
+      ],
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -103,7 +116,6 @@ export const setupSocketServer = (httpServer) => {
       // Notify all *other* participants that room is cancelled
       socket.to(roomId).emit("room-cancelled");
 
-
       io.in(roomId).socketsLeave(roomId);
       // Note: The HTTP controller (cancelRoom) handles the DB deletion.
     });
@@ -120,33 +132,38 @@ export const setupSocketServer = (httpServer) => {
         sender,
         name,
         text,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     });
 
     socket.on("start-match", ({ roomId, metadata }) => {
       if (!metadata) {
-        console.log(`❌ Match start failed: Metadata missing for room ${roomId}`);
+        console.log(
+          `❌ Match start failed: Metadata missing for room ${roomId}`
+        );
         return;
       }
 
-      console.log(`🎮 Match starting in room ${roomId} with duration: ${metadata.duration} mins`);
+      console.log(
+        `🎮 Match starting in room ${roomId} with duration: ${metadata.duration} mins`
+      );
 
       const startTime = Date.now();
       io.to(roomId).emit("match-started", {
         startTime: startTime,
-        metadata: metadata
+        metadata: metadata,
       });
     });
 
-
     // Handle disconnection
-    socket.on("disconnect",async  () => {
+    socket.on("disconnect", async () => {
       const roomId = socket.data.joinedRoom;
       const userId = socket.data.userId;
 
       if (roomId && userId) {
-        console.log(`[Socket Disconnect] 🔴 User ${userId} disconnected from room ${roomId}`);
+        console.log(
+          `[Socket Disconnect] 🔴 User ${userId} disconnected from room ${roomId}`
+        );
 
         // Notify others that opponent disconnected
         socket.to(roomId).emit("opponent-disconnected", { userId });
@@ -172,147 +189,171 @@ export const setupSocketServer = (httpServer) => {
       });
     });
 
-    socket.on("code-submitted", async ({ roomId, userId, problemId, result }) => {
-      console.log(`[Submission] 📝 ${userId} submitted for problem ${problemId}`);
-      
-      try {
-        // Get the match associated with this room
-        const room = await Room.findOne({ roomId: roomId });
-        if (!room) {
-          console.log(`❌ [Submission] Room ${roomId} not found`);
-          return;
-        }
+    socket.on(
+      "code-submitted",
+      async ({ roomId, userId, problemId, result }) => {
+        console.log(
+          `[Submission] 📝 ${userId} submitted for problem ${problemId}`
+        );
 
-        const matchId = room.matchId;
-        
-        // Save submission to database
-        await Submission.create({
-          userId,
-          problemId,
-          matchId,
-          code: result.code || "",
-          language: result.language || "cpp",
-          status: result.allPassed ? "accepted" : "rejected",
-          results: result,
-          submittedAt: new Date()
-        });
+        try {
+          // Get the match associated with this room
+          const room = await Room.findOne({ roomId: roomId });
+          if (!room) {
+            console.log(`❌ [Submission] Room ${roomId} not found`);
+            return;
+          }
 
-        // Update MatchParticipant if problem was solved
-        if (result.allPassed) {
-          await MatchParticipant.updateOne(
-            { userId, matchId },
-            {
-              $push: { 
-                "problems.$[elem]": {
-                  problemId,
-                  status: "solved",
-                  attempts: (result.attempts || 1),
-                  lastSubmissionTime: new Date(),
-                  bestScore: 100
+          const matchId = room.matchId;
+
+          // Save submission to database
+          await Submission.create({
+            userId,
+            problemId,
+            matchId,
+            code: result.code || "",
+            language: result.language || "cpp",
+            status: result.allPassed ? "accepted" : "rejected",
+            results: result,
+            submittedAt: new Date(),
+          });
+
+          // Update MatchParticipant if problem was solved
+          if (result.allPassed) {
+            await MatchParticipant.updateOne(
+              { userId, matchId },
+              {
+                $push: {
+                  "problems.$[elem]": {
+                    problemId,
+                    status: "solved",
+                    attempts: result.attempts || 1,
+                    lastSubmissionTime: new Date(),
+                    bestScore: 100,
+                  },
+                },
+              },
+              { arrayFilters: [{ "elem.problemId": { $ne: problemId } }] }
+            );
+
+            // If element doesn't exist, add it
+            const participant = await MatchParticipant.findOne({
+              userId,
+              matchId,
+            });
+            const problemExists = participant?.problems?.some(
+              (p) => p.problemId?.toString() === problemId?.toString()
+            );
+
+            if (!problemExists) {
+              await MatchParticipant.updateOne(
+                { userId, matchId },
+                {
+                  $push: {
+                    problems: {
+                      problemId,
+                      status: "solved",
+                      attempts: result.attempts || 1,
+                      lastSubmissionTime: new Date(),
+                      bestScore: 100,
+                    },
+                  },
                 }
-              }
-            },
-            { arrayFilters: [{ "elem.problemId": { $ne: problemId } }] }
+              );
+            }
+          }
+
+          console.log(
+            `✅ [Submission Saved] Submission saved for user ${userId}`
           );
-          
-          // If element doesn't exist, add it
-          const participant = await MatchParticipant.findOne({ userId, matchId });
-          const problemExists = participant?.problems?.some(p => p.problemId?.toString() === problemId?.toString());
-          
-          if (!problemExists) {
-            await MatchParticipant.updateOne(
-              { userId, matchId },
-              {
-                $push: {
-                  problems: {
-                    problemId,
-                    status: "solved",
-                    attempts: (result.attempts || 1),
-                    lastSubmissionTime: new Date(),
-                    bestScore: 100
-                  }
-                }
-              }
-            );
-          }
+        } catch (error) {
+          console.error(`❌ [Submission Save Error]:`, error);
         }
 
-        console.log(`✅ [Submission Saved] Submission saved for user ${userId}`);
-      } catch (error) {
-        console.error(`❌ [Submission Save Error]:`, error);
-      }
-
-      // Broadcast to opponent
-      socket.to(roomId).emit("opponent-submitted", {
-        userId,
-        problemId,
-        result,
-      });
-    });
-
-    socket.on("my-submission", async ({ roomId, userId, problemId, result }) => {
-      console.log(`[My Submission] ✅ ${userId} solved problem ${problemId}`);
-      
-      try {
-        // Get the match associated with this room
-        const room = await Room.findOne({ roomId: roomId });
-        if (!room) {
-          console.log(`❌ [My Submission] Room ${roomId} not found`);
-          return;
-        }
-
-        const matchId = room.matchId;
-        
-        // Save submission to database
-        await Submission.create({
+        // Broadcast to opponent
+        socket.to(roomId).emit("opponent-submitted", {
           userId,
           problemId,
-          matchId,
-          code: result.code || "",
-          language: result.language || "cpp",
-          status: result.allPassed ? "accepted" : "rejected",
-          results: result,
-          submittedAt: new Date()
+          result,
         });
+      }
+    );
 
-        // Update MatchParticipant
-        if (result.allPassed) {
-          const participant = await MatchParticipant.findOne({ userId, matchId });
-          const problemExists = participant?.problems?.some(p => p.problemId?.toString() === problemId?.toString());
-          
-          if (!problemExists) {
-            await MatchParticipant.updateOne(
-              { userId, matchId },
-              {
-                $push: {
-                  problems: {
-                    problemId,
-                    status: "solved",
-                    attempts: (result.attempts || 1),
-                    lastSubmissionTime: new Date(),
-                    bestScore: 100
-                  }
-                }
-              }
-            );
+    socket.on(
+      "my-submission",
+      async ({ roomId, userId, problemId, result }) => {
+        console.log(`[My Submission] ✅ ${userId} solved problem ${problemId}`);
+
+        try {
+          // Get the match associated with this room
+          const room = await Room.findOne({ roomId: roomId });
+          if (!room) {
+            console.log(`❌ [My Submission] Room ${roomId} not found`);
+            return;
           }
+
+          const matchId = room.matchId;
+
+          // Save submission to database
+          await Submission.create({
+            userId,
+            problemId,
+            matchId,
+            code: result.code || "",
+            language: result.language || "cpp",
+            status: result.allPassed ? "accepted" : "rejected",
+            results: result,
+            submittedAt: new Date(),
+          });
+
+          // Update MatchParticipant
+          if (result.allPassed) {
+            const participant = await MatchParticipant.findOne({
+              userId,
+              matchId,
+            });
+            const problemExists = participant?.problems?.some(
+              (p) => p.problemId?.toString() === problemId?.toString()
+            );
+
+            if (!problemExists) {
+              await MatchParticipant.updateOne(
+                { userId, matchId },
+                {
+                  $push: {
+                    problems: {
+                      problemId,
+                      status: "solved",
+                      attempts: result.attempts || 1,
+                      lastSubmissionTime: new Date(),
+                      bestScore: 100,
+                    },
+                  },
+                }
+              );
+            }
+          }
+
+          console.log(
+            `✅ [My Submission Saved] Submission saved for user ${userId}`
+          );
+        } catch (error) {
+          console.error(`❌ [My Submission Save Error]:`, error);
         }
 
-        console.log(`✅ [My Submission Saved] Submission saved for user ${userId}`);
-      } catch (error) {
-        console.error(`❌ [My Submission Save Error]:`, error);
+        // Broadcast to self for progress update
+        socket.emit("my-submission", {
+          userId,
+          problemId,
+          result,
+        });
       }
-
-      // Broadcast to self for progress update
-      socket.emit("my-submission", {
-        userId,
-        problemId,
-        result,
-      });
-    });
+    );
 
     socket.on("change-problem", ({ roomId, problemIndex, userId }) => {
-      console.log(`[Problem Change] 🔄 ${userId} changed to problem ${problemIndex} in ${roomId}`);
+      console.log(
+        `[Problem Change] 🔄 ${userId} changed to problem ${problemIndex} in ${roomId}`
+      );
       socket.to(roomId).emit("opponent-changed-problem", {
         problemIndex,
         userId,
